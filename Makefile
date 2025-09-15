@@ -34,16 +34,16 @@ imports: $(GCI)
 
 $(MOCKGEN):
 	@echo ">> getting go.uber.org/mock/mockgen and its dependencies..."
-	@go get go.uber.org/mock/mockgen@latest
+	@go get -tool go.uber.org/mock/mockgen@latest
 
 $(GOTESTSUM):
 	@echo ">> getting gotest.tools/gotestsum and its dependencies..."
-	@go get gotest.tools/gotestsum@latest
+	@go get -tool gotest.tools/gotestsum@latest
 
 $(GOLANGCI_LINT):
 	@echo ">> installing golangci-lint..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.2
+	@go get -tool github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.2
 
 $(GCI):
 	@echo ">> installing gci..."
-	@go install github.com/daixiang0/gci@latest
+	@go get -tool github.com/daixiang0/gci@latest
