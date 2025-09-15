@@ -20,7 +20,7 @@ jobs:
         with:
           extra_args: --only-verified
 
-      - name: Setup Go 1.23
+      - name: Setup Go
         uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5
         with:
           go-version-file: "go.mod"
@@ -30,7 +30,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6.0.1
         with:
           args: -v --timeout=5m
-          version: v1.60.3
+          version: v1.61
 
       - name: Test
         if: ${{ github.event_name == 'pull_request' && !contains(env.head_commit_message, '#skip-test') }}
