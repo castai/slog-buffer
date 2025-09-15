@@ -30,7 +30,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6.0.1
         with:
           args: -v --timeout=5m
-          version: v1.61
+          version: v1.64.2
 
       - name: Test
         if: ${{ github.event_name == 'pull_request' && !contains(env.head_commit_message, '#skip-test') }}

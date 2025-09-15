@@ -42,7 +42,7 @@ $(GOTESTSUM):
 
 $(GOLANGCI_LINT):
 	@echo ">> installing golangci-lint..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.2
 
 $(GCI):
 	@echo ">> installing gci..."
