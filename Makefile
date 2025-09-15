@@ -9,7 +9,7 @@ mocks: $(MOCKGEN)
 .PHONY: test
 test:
 	@echo ">> running tests..."
-	@MallocNanoZone=0 CGO_ENABLED=0 go run gotest.tools/gotestsum  -- -race ./...
+	@MallocNanoZone=0 go run gotest.tools/gotestsum  -- -race ./...
 
 .PHONY: lint
 lint:
