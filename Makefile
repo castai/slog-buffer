@@ -1,9 +1,3 @@
-GOBIN ?= $(shell go env GOPATH)/bin
-MOCKGEN := $(GOBIN)/uber-mockgen
-GOTESTSUM := $(GOBIN)/gotestsum
-GOLANGCI_LINT := $(GOBIN)/golangci-lint
-GCI := $(GOBIN)/gci
-
 PKG_DIR := ./pkg/store
 MOCK_DIR := $(PKG_DIR)/mocks
 
@@ -13,14 +7,14 @@ mocks: $(MOCKGEN)
 	@go generate $(PKG_DIR)
 
 .PHONY: test
-test: $(GOTESTSUM)
+test:
 	@echo ">> running tests..."
-	@MallocNanoZone=0 CGO_ENABLED=0 $(GOTESTSUM) -- -race ./...
+	@MallocNanoZone=0 CGO_ENABLED=0 go run gotest.tools/gotestsum  -- -race ./...
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT)
+lint:
 	@echo ">> running golangci-lint..."
-	@$(GOLANGCI_LINT) run ./...
+	@go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.2 run ./...
 
 .PHONY: tidy
 tidy:
@@ -28,22 +22,6 @@ tidy:
 	@go mod tidy
 
 .PHONY: imports
-imports: $(GCI)
+imports:
 	@echo ">> fixing import order with gci..."
-	@$(GCI) write --skip-generated -s standard -s default -s "Prefix(github.com/castai)" ./
-
-$(MOCKGEN):
-	@echo ">> getting go.uber.org/mock/mockgen and its dependencies..."
-	@go get -tool go.uber.org/mock/mockgen@latest
-
-$(GOTESTSUM):
-	@echo ">> getting gotest.tools/gotestsum and its dependencies..."
-	@go get -tool gotest.tools/gotestsum@latest
-
-$(GOLANGCI_LINT):
-	@echo ">> installing golangci-lint..."
-	@go get -tool github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.2
-
-$(GCI):
-	@echo ">> installing gci..."
-	@go get -tool github.com/daixiang0/gci@latest
+	@go run github.com/daixiang0/gci write --skip-generated -s standard -s default -s "Prefix(github.com/castai)" ./
