@@ -7,14 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/castai/slog-buffer/pkg/store/mocks"
 	"github.com/coder/quartz"
 	"go.uber.org/mock/gomock"
-)
 
-type testEntry struct {
-	value string
-}
+	"github.com/castai/slog-buffer/pkg/store/mocks"
+)
 
 func TestMemory_Write(t *testing.T) {
 	type tuners struct {
