@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/castai/slog-buffer/pkg/store/mocks"
-
 	"go.uber.org/mock/gomock"
+
+	"github.com/castai/slog-buffer/pkg/store/mocks"
 )
 
 func tr(r slog.Record) (string, error) {
