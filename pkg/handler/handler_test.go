@@ -12,7 +12,7 @@ import (
 	"github.com/castai/slog-buffer/pkg/store/mocks"
 )
 
-func tr(r slog.Record) (string, error) {
+func tr(r slog.Record, a []slog.Attr) (string, error) {
 	return "", nil
 }
 
@@ -91,7 +91,7 @@ func TestBuffered_Enabled(t *testing.T) {
 
 func TestBuffered_Handle(t *testing.T) {
 	type args struct {
-		transform func(slog.Record) (string, error)
+		transform func(slog.Record, []slog.Attr) (string, error)
 		record    slog.Record
 	}
 	tests := []struct {
@@ -104,7 +104,7 @@ func TestBuffered_Handle(t *testing.T) {
 		{
 			name: "successful handle",
 			args: args{
-				transform: func(r slog.Record) (string, error) { return "ok", nil },
+				transform: func(r slog.Record, a []slog.Attr) (string, error) { return "ok", nil },
 				record:    slog.Record{},
 			},
 			wantErr:  false,
@@ -116,7 +116,7 @@ func TestBuffered_Handle(t *testing.T) {
 		{
 			name: "transform error",
 			args: args{
-				transform: func(r slog.Record) (string, error) { return "", errors.New("err") },
+				transform: func(r slog.Record, a []slog.Attr) (string, error) { return "", errors.New("err") },
 				record:    slog.Record{},
 			},
 			wantErr:  true,
