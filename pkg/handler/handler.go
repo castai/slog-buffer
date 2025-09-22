@@ -16,7 +16,7 @@ type Config struct {
 }
 type (
 	Option           func(c *Config)
-	Transform[T any] func(r slog.Record) (T, error)
+	Transform[T any] func(r slog.Record, attrs []slog.Attr) (T, error)
 )
 
 var defaults = &Config{
@@ -72,7 +72,7 @@ func (b *Buffered[T]) Enabled(ctx context.Context, l slog.Level) bool {
 
 // Handle transforms a log record and writes it to the store.
 func (b *Buffered[T]) Handle(ctx context.Context, r slog.Record) error {
-	e, err := b.transform(r)
+	e, err := b.transform(r, b.attrs)
 	if err != nil {
 		return err
 	}
@@ -82,14 +82,14 @@ func (b *Buffered[T]) Handle(ctx context.Context, r slog.Record) error {
 }
 
 // WithAttrs implements slog.Handler interface
-func (h *Buffered[T]) WithAttrs(attrs []slog.Attr) slog.Handler {
-	newHandler := *h
-	newHandler.attrs = append(h.attrs, attrs...)
-	return &newHandler
+func (b *Buffered[T]) WithAttrs(attrs []slog.Attr) slog.Handler {
+	handler := *b
+	handler.attrs = append(b.attrs, attrs...)
+	return &handler
 }
 
 // WithGroup implements slog.Handler interface
-func (h *Buffered[T]) WithGroup(name string) slog.Handler {
+func (b *Buffered[T]) WithGroup(name string) slog.Handler {
 	// For simplicity, we're not implementing group support here
-	return h
+	return b
 }
