@@ -9,6 +9,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coder/quartz"
 )
@@ -38,10 +39,11 @@ type Store[T any] interface {
 type memory[T any] struct {
 	flusher Flusher[T]     // User-provided batch Flusher
 	cfg     *Config        // Configuration
-	flush   chan any       // Signal channel for external/manual flush requests
+	onFlush chan any       // Signal channel for external/manual flush requests
 	buffer  chan T         // Buffered channel of incoming entries
 	ticker  *quartz.Ticker // Time-based flush trigger
 	batch   []T            // Current unflushed batch
+	queue   Queue[[]T]
 }
 
 // NewMemory creates a new buffered Store using the provided Flusher and configuration options.
@@ -58,10 +60,11 @@ func NewMemory[T any](flusher Flusher[T], options ...Option) Store[T] {
 	m := &memory[T]{
 		cfg:     cfg,
 		flusher: flusher,
-		flush:   make(chan any, 1),
+		onFlush: make(chan any, 1),
 		buffer:  make(chan T, cfg.Capacity),
 		ticker:  cfg.clock.NewTicker(cfg.Interval),
 		batch:   make([]T, 0, cfg.BatchSize),
+		queue:   NewRingQueue[[]T](1000),
 	}
 
 	return m
@@ -85,7 +88,7 @@ func (m *memory[T]) Write(entries ...T) {
 // unless a flush is already pending.
 func (m *memory[T]) force() {
 	select {
-	case m.flush <- struct{}{}:
+	case m.onFlush <- struct{}{}:
 	default:
 	}
 }
@@ -114,22 +117,16 @@ func (m *memory[T]) once(ctx context.Context) bool {
 	case item := <-m.buffer:
 		m.batch = append(m.batch, item)
 		if len(m.batch) >= m.cfg.BatchSize {
-			m.tryFlush(ctx)
+			m.tryFlush()
 		}
 	case <-m.ticker.C:
-		if len(m.batch) > 0 {
-			m.tryFlush(ctx)
-		}
-	case <-m.flush:
+		m.tryFlush()
+	case <-m.onFlush:
 		m.drain()
-		if len(m.batch) > 0 {
-			m.tryFlush(ctx)
-		}
+		m.tryFlush()
 	case <-ctx.Done():
 		m.drain()
-		if len(m.batch) > 0 {
-			m.tryFlush(ctx)
-		}
+		m.tryFlush()
 		return false
 	}
 	return true
@@ -143,17 +140,69 @@ func (m *memory[T]) drain() {
 		select {
 		case entry := <-m.buffer:
 			m.batch = append(m.batch, entry)
+			if len(m.batch) >= m.cfg.BatchSize {
+				m.tryFlush()
+			}
 		default:
 			drained = true
 		}
 	}
 }
 
-// tryFlush sends the current batch to the Flusher, handles errors via configured handler,
-// and resets batch state.
-func (m *memory[T]) tryFlush(ctx context.Context) {
-	if err := m.flusher.Flush(ctx, m.batch); err != nil && m.cfg.err != nil {
-		m.cfg.err.OnError(err)
-	}
+// tryFlush attempts to flush all pending items:
+//  1. Drains and flushes all queued batches in order, stopping early if Flush fails.
+//  2. Flushes the current in-memory batch as a new batch.
+//     - On success, the batch is cleared.
+//     - On failure, the batch is re-queued and error handler is invoked if configured.
+func (m *memory[T]) tryFlush() {
+	batch := make([]T, len(m.batch))
+	copy(batch, m.batch)
 	m.batch = m.batch[:0]
+	err := m.drainQueue()
+	if err != nil {
+		m.queue.Enqueue(batch)
+		return
+	}
+	err = m.flush(batch)
+	if err != nil {
+		m.queue.Enqueue(batch)
+		return
+	}
+}
+
+// drainQueue processes and flushes all batches currently queued in memory.
+// Returns any error encountered during flushing immediately, stopping further processing.
+func (m *memory[T]) drainQueue() error {
+	for {
+		d, ok := m.queue.Peek()
+		if !ok {
+			return nil
+		}
+		err := m.flush(d)
+		if err != nil {
+			return err
+		}
+		m.queue.Dequeue()
+	}
+}
+
+// flush sends the given entries to the configured Flusher's Flush method.
+// If flushing fails and an error handler is configured,
+// the error handler's OnError method is invoked.
+// Returns any error encountered during flushing.
+func (m *memory[T]) flush(entries []T) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), m.cfg.FlushTimeout)
+	defer cancel()
+	err := m.flusher.Flush(ctx, entries)
+	if err != nil {
+		if m.cfg.err != nil {
+			m.cfg.err.OnError(fmt.Errorf("flusher error: %w", err))
+		}
+		return err
+	}
+
+	return nil
 }

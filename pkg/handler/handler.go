@@ -51,9 +51,10 @@ func WithLevel(l slog.Level) Option {
 // The store is where the transformed logs will be written. It must implement
 // the store.Store[T] interface.
 func NewBuffered[T any](transform Transform[T], store store.Store[T], options ...Option) *Buffered[T] {
+	cfg := *defaults
 	b := &Buffered[T]{
 		store:     store,
-		cfg:       defaults,
+		cfg:       &cfg,
 		transform: transform,
 		attrs:     []slog.Attr{},
 	}
