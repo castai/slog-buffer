@@ -44,17 +44,25 @@ func WithClock(c quartz.Clock) Option {
 	}
 }
 
+func WithFlushTimeout(t time.Duration) Option {
+	return func(cfg *Config) {
+		cfg.FlushTimeout = t
+	}
+}
+
 type Config struct {
-	Interval  time.Duration
-	BatchSize int
-	Capacity  int
-	err       ErrorHandler
-	clock     quartz.Clock
+	Interval     time.Duration
+	BatchSize    int
+	Capacity     int
+	FlushTimeout time.Duration
+	err          ErrorHandler
+	clock        quartz.Clock
 }
 
 var defaults = &Config{
-	Interval:  5 * time.Second,
-	BatchSize: 200,
-	Capacity:  10000,
-	clock:     quartz.NewReal(),
+	Interval:     5 * time.Second,
+	BatchSize:    400,
+	Capacity:     10000,
+	clock:        quartz.NewReal(),
+	FlushTimeout: 4 * time.Second,
 }

@@ -45,7 +45,7 @@ func TestNewBuffered(t *testing.T) {
 
 			st := mocks.NewMockStore[string](ctrl)
 			tt.tuneStore(st)
-			h := NewBuffered[string](tr, st, tt.options...)
+			h := NewBuffered(tr, st, tt.options...)
 			gotLevel := defaultLevel
 			if h != nil && h.cfg != nil {
 				gotLevel = h.cfg.Level
